@@ -1,29 +1,50 @@
-pipeline {
-    agent any
-    stages{
-        stage("Clone Code"){
+@Library("Shared") _
+pipeline{
+    
+    agent{ label "vinod" }
+    
+    stages {
+        
+        stage("hello"){
             steps{
-                git url: "https://github.com/LondheShubham153/django-notes-app.git", branch: "main"
-            }
-        }
-        stage("Build and Test"){
-            steps{
-                sh "docker build . -t note-app-test-new"
-            }
-        }
-        stage("Push to Docker Hub"){
-            steps{
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker tag note-app-test-new ${env.dockerHubUser}/note-app-test-new:latest"
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker push ${env.dockerHubUser}/note-app-test-new:latest"
+                script{hello()
+                    
                 }
             }
         }
-        stage("Deploy"){
+        stage("Code"){
             steps{
-                sh "docker-compose down && docker-compose up -d"
+                script{
+                clone("https://github.com/nizam-41/django-notes-app", "dev")
+                }
             }
         }
+        stage("Build"){
+             steps{
+                script{
+                 docker_build("notes-app","latest","nizam-41")
+                }
+             }
+        }
+        stage("Test"){
+             steps{
+                 echo "This is testing the code"
+             }
+        }
+        stage("Push to DockerHub") {
+    steps {
+        docker_push(
+            imageName: "notes-app",
+            imageTag: "latest",
+            credentials: "DockerHubCred"
+        )
+    }
+}
+        stage("Deploy"){
+    steps{
+        echo "This is deploying the code"
+        sh "docker compose up -d"
+        }
+       }
     }
 }
